@@ -29,7 +29,7 @@ namespace KWRBot
         /// </summary>
         private void Initialise()
         {
-            if (File.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"settings.json")))
+            if (File.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json")))
                 this._config = JsonConvert.DeserializeObject<Config>(File.ReadAllText("settings.json"));
             else this._config = new Config();
             if (this._config.CommandPrefix.ToString().Length == 0)
@@ -49,8 +49,9 @@ namespace KWRBot
             };
             this._client.MessageReceived += (sender, e) =>
             {
-                Console.WriteLine($"Messag received from {e.Author.Username}: \"{e.MessageText}\"");
-                if(e.Message.Content.Length > 0 && e.Message.Content[0] == this._config.CommandPrefix)
+                if (e.Author.ID != _config.OwnerID && e.Author.ID != this._config.BotID)
+                { Console.WriteLine($"Messag received from {e.Author.Username}: \"{e.MessageText}\" id:{e.Author.ID}"); }
+                if (e.Message.Content.Length > 0 && e.Message.Content[0] == this._config.CommandPrefix)
                 {
                     string rawCommand = e.Message.Content.Substring(1);
                     CommandsManager.ExecuteOnMessageCommand(rawCommand, e.Channel, e.Author);
@@ -62,7 +63,7 @@ namespace KWRBot
                 if (e.Message.Length > 0 && e.Message[0] == this._config.CommandPrefix)
                 {
                     string rawCommand = e.Message.Substring(1);
-                    if(e.Author.ID == this._config.OwnerID)
+                    if (e.Author.ID == this._config.OwnerID)
                     {
                         this._client.AcceptInvite(rawCommand.Substring(rawCommand.LastIndexOf('/') + 1));
                     }
@@ -87,7 +88,7 @@ namespace KWRBot
             }));
             CommandsManager.AddCommand(new CommandStub("wakeup", "Mentions user multiple times", "specify victim", PermissionType.User, 1, cmdArgs =>
                {
-                   string substring = cmdArgs.Args[0].Split(new char[] {' '}, StringSplitOptions.RemoveEmptyEntries)[0];
+                   string substring = cmdArgs.Args[0].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)[0];
                    var victim = this._client.GetMemberFromChannel(cmdArgs.Channel, substring, false);
                    var channel = cmdArgs.Channel;
                    for (int i = 0; i < int.Parse(cmdArgs.Args[0].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)[1]); i++)
@@ -95,6 +96,12 @@ namespace KWRBot
                        this._client.SendMessageToChannel($"@{victim.Username} wake up!", cmdArgs.Channel);
                    }
                }));
+            CommandsManager.AddCommand(new CommandStub("deletemsg", "Delete last n messages", "specify amount of messages", PermissionType.User, 1, cmdArgs =>
+                 {
+                     int amount = 0;
+                     int.TryParse(cmdArgs.Args[0], out amount);
+                     this._client.DeleteMultipleMessagesInChannel(cmdArgs.Channel, amount);
+                 }));
         }
 
         public void Login()

@@ -21,6 +21,9 @@ namespace KWRBot
         [JsonProperty("bot_token")]
         public string BotToken { get; internal set; }
 
+        [JsonProperty("bot_ID")]
+        public string BotID { get; internal set; }
+
         [JsonProperty("command_prefix")]
         public char CommandPrefix { get; internal set; } = '!';
 
