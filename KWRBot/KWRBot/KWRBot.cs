@@ -51,7 +51,7 @@ namespace KWRBot
             {
                 if (e.Author.ID != _config.OwnerID && e.Author.ID != this._config.BotID)
                 { Console.WriteLine($"Messag received from {e.Author.Username}: \"{e.MessageText}\" id:{e.Author.ID}"); }
-                if (e.Message.Content.Length > 0 && e.Message.Content[0] == this._config.CommandPrefix)
+                if (e.Message.Content.Length > 0 && e.Message.Content[0] == this._config.CommandPrefix && e.Author.ID != this._config.BotID)
                 {
                     string rawCommand = e.Message.Content.Substring(1);
                     CommandsManager.ExecuteOnMessageCommand(rawCommand, e.Channel, e.Author);
@@ -80,13 +80,26 @@ namespace KWRBot
         /// </summary>
         private void SetUpCommands()
         {
-            CommandsManager.AddCommand(new CommandStub("join", "Join a specified server", "", PermissionType.Owner, 1, cmdArgs =>
+            CommandsManager.AddCommand(new CommandStub("about", "Tells about bot.", "", PermissionType.User, 1, cmdArgs =>
+                {
+                    this._client.SendMessageToChannel("Currently being in development this bot will assists moderators and administrators in managing server and channels.\nAuthor: Reverendo\nCourtesy: Big thanks to Luigifan", cmdArgs.Channel);
+                }));
+            CommandsManager.AddCommand(new CommandStub("help", "Provide discriptions to all avaliable commands", "", PermissionType.User, cmdArgs =>
+               {
+                   string help = String.Format("inComplete set of commands:\n");
+                   foreach (var command in CommandsManager.Commands)
+                   {
+                       help += String.Format("{0,-15} {1,-100}\n", this._config.CommandPrefix + command.CommandName,"-" + command.Description);
+                   }
+               this._client.SendMessageToChannel(help, cmdArgs.Channel);
+               }));
+            CommandsManager.AddCommand(new CommandStub("join", "Join a specified server. Ownder only.", "", PermissionType.Owner, 1, cmdArgs =>
             {
                 string substring = cmdArgs.Args[0].Substring(cmdArgs.Args[0].LastIndexOf('/') + 1);
                 _client.AcceptInvite(substring);
                 Console.WriteLine("Connecting");
             }));
-            CommandsManager.AddCommand(new CommandStub("wakeup", "Mentions user multiple times", "specify victim", PermissionType.User, 1, cmdArgs =>
+            CommandsManager.AddCommand(new CommandStub("wakeup", $"Mentions user multiple times. Example: {this._config.CommandPrefix}wakeup Username n-times", "specify victim", PermissionType.User, 1, cmdArgs =>
                {
                    string substring = cmdArgs.Args[0].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)[0];
                    var victim = this._client.GetMemberFromChannel(cmdArgs.Channel, substring, false);
@@ -96,7 +109,7 @@ namespace KWRBot
                        this._client.SendMessageToChannel($"@{victim.Username} wake up!", cmdArgs.Channel);
                    }
                }));
-            CommandsManager.AddCommand(new CommandStub("deletemsg", "Delete last n messages", "specify amount of messages", PermissionType.User, 1, cmdArgs =>
+            CommandsManager.AddCommand(new CommandStub("deletemsg", $"Delete last n messages. Example: {this._config.CommandPrefix}deletemsg n", "specify amount of messages", PermissionType.User, 1, cmdArgs =>
                  {
                      int amount = 0;
                      int.TryParse(cmdArgs.Args[0], out amount);
