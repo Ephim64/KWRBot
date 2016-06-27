@@ -59,14 +59,14 @@ namespace KWRBot
         /// </summary>
         private void Initialise()
         {
-            if (File.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json")) && !this.newConfig)
-                this._config = JsonConvert.DeserializeObject<Config>(File.ReadAllText("settings.json"));
+            if (File.Exists(Path.GetFullPath("settings.json")) && !this.newConfig)
+                this._config = JsonConvert.DeserializeObject<Config>(File.ReadAllText(Path.GetFullPath("settings.json")));
             else
             {
                 this._config = new Config();
                 this.newConfig = true;
             }
-            if (this._config.CommandPrefix.ToString().Length == 0 && this.newConfig)
+            if (this._config.CommandPrefix.ToString().Length == 0)
                 this._config.CommandPrefix = '!';
             if(this._config.BotEmail.Length == 0)
             {
@@ -75,7 +75,7 @@ namespace KWRBot
                 this._config.BotEmail = Console.ReadLine();
                 Console.BackgroundColor = ConsoleColor.Black;
             }
-            if (this._config.BotPass.Length == 0 && this.newConfig)
+            if (this._config.BotPass.Length == 0)
             {
                 Console.BackgroundColor = ConsoleColor.Red;
                 Console.Write("Error! No password were found!\nEnter bot's password: ");
@@ -83,7 +83,7 @@ namespace KWRBot
                 Console.BackgroundColor = ConsoleColor.Black;
             }
             if(this.newConfig)
-                File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json"), JsonConvert.SerializeObject(this._config));
+                File.WriteAllText(Path.GetFullPath("settings.json"), JsonConvert.SerializeObject(this._config));
             _client = new DiscordClient();
             this._client.ClientPrivateInformation.Email = this._config.BotEmail;
             this._client.ClientPrivateInformation.Password = this._config.BotPass;
@@ -99,8 +99,8 @@ namespace KWRBot
             };
             this._client.MessageReceived += (sender, e) =>
             {
-                if (e.Author.ID != _config.OwnerID && e.Author.ID != this._config.BotID)
-                { Console.WriteLine($"Messag received from {e.Author.Username}: \"{e.MessageText}\" id:{e.Author.ID}"); }
+                if (e.Author.ID != _config.OwnerID && e.Author.Username != this._client.ClientPrivateInformation.Username)
+                { Console.WriteLine($"Messag received from {e.Author.Username}: \"{e.MessageText}\""); }
                 if (e.Message.Content.Length > 0 && e.Message.Content[0] == this._config.CommandPrefix && e.Author.ID != this._config.BotID)
                 {
                     string rawCommand = e.Message.Content.Substring(1);
@@ -122,7 +122,7 @@ namespace KWRBot
                 if (e.Message.StartsWith("?authenticate"))
                 {
                     Console.BackgroundColor = ConsoleColor.Red;
-                    Console.Write("Kerrang!\nIn order to become a owner type in bot's password: ");
+                    Console.Write("Kerrang!\nIn order to become an owner type in bot's password: ");
                     if (Console.ReadLine() == this._config.BotPass)
                     {
                         CommandsManager.AddPermission(e.Author, PermissionType.Owner);
@@ -131,7 +131,7 @@ namespace KWRBot
                     }
                     Console.BackgroundColor = ConsoleColor.Black;
                     e.Author.SlideIntoDMs("Whelcome long lost father!");
-                    File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json"), JsonConvert.SerializeObject(this._config));
+                    File.WriteAllText(Path.GetFullPath("settings.json"), JsonConvert.SerializeObject(this._config));
                 }
             };
             this._client.GuildCreated += (sender, e) =>
