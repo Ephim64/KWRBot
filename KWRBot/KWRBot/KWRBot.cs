@@ -17,6 +17,36 @@ namespace KWRBot
         private CommandsManager CommandsManager;
         private Config _config;
         private DiscordClient _client;
+        private bool newConfig = false;
+        private string[] ConfuQuote = new string[]
+        {
+            "Три пути ведут к знанию: путь размышления — это путь самый благородный, путь подражания — это путь самый легкий и путь опыта — это путь самый горький.",
+            "Если ты ненавидишь – значит тебя победили.",
+            "В стране, где есть порядок, будь смел и в действиях, и в речах. В стране, где нет порядка, будь смел в действиях, но осмотрителен в речах.",
+            "Перед тем как мстить, вырой две могилы.",
+            "Давай наставления только тому, кто ищет знаний, обнаружив свое невежество.",
+            "Счастье — это когда тебя понимают, большое счастье — это когда тебя любят, настоящее счастье — это когда любишь ты.",
+            "На самом деле, жизнь проста, но мы настойчиво её усложняем.",
+            "Несдержанность в мелочах погубит великое дело.",
+            "Лишь когда приходят холода, становится ясно, что сосны и кипарисы последними теряют свой убор.",
+            "Люди в древности не любили много говорить. Они считали позором для себя не поспеть за собственными словами.",
+            "Советы мы принимаем каплями, зато раздаём ведрами.",
+            "Драгоценный камень нельзя отполировать без трения. Также и человек не может стать успешным без достаточного количества трудных попыток.",
+            "Благородный человек предъявляет требования к себе, низкий человек предъявляет требования к другим.",
+            "Побороть дурные привычки можно только сегодня, а не завтра.",
+            "Три вещи никогда не возвращаются обратно – время, слово, возможность. Поэтому: не теряй времени, выбирай слова, не упускай возможность.",
+            "Выберите себе работу по душе, и вам не придется работать ни одного дня в своей жизни.",
+            "Я не огорчаюсь, если люди меня не понимают, — огорчаюсь, если я не понимаю людей.",
+            "Попытайтесь быть хотя бы немного добрее, и вы увидите, что будете не в состоянии совершить дурной поступок.",
+            "В древности люди учились для того, чтобы совершенствовать себя. Нынче учатся для того, чтобы удивить других.",
+            "Можно всю жизнь проклинать темноту, а можно зажечь маленькую свечку.",
+            "Пришло несчастье – человек породил его, пришло счастье – человек его вырастил.",
+            "Красота есть во всем, но не всем дано это видеть.",
+            "Благородный в душе безмятежен. Низкий человек всегда озабочен.",
+            "Если тебе плюют в спину, значит ты впереди.",
+            "Не тот велик, кто никогда не падал, а тот велик – кто падал и вставал."
+        };
+
         public KWRBot()
         {
             Initialise();
@@ -29,11 +59,31 @@ namespace KWRBot
         /// </summary>
         private void Initialise()
         {
-            if (File.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json")))
+            if (File.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json")) && !this.newConfig)
                 this._config = JsonConvert.DeserializeObject<Config>(File.ReadAllText("settings.json"));
-            else this._config = new Config();
-            if (this._config.CommandPrefix.ToString().Length == 0)
+            else
+            {
+                this._config = new Config();
+                this.newConfig = true;
+            }
+            if (this._config.CommandPrefix.ToString().Length == 0 && this.newConfig)
                 this._config.CommandPrefix = '!';
+            if(this._config.BotEmail.Length == 0)
+            {
+                Console.BackgroundColor = ConsoleColor.Red;
+                Console.Write("Error! No password were found!\nEnter bot's email: ");
+                this._config.BotEmail = Console.ReadLine();
+                Console.BackgroundColor = ConsoleColor.Black;
+            }
+            if (this._config.BotPass.Length == 0 && this.newConfig)
+            {
+                Console.BackgroundColor = ConsoleColor.Red;
+                Console.Write("Error! No password were found!\nEnter bot's password: ");
+                this._config.BotPass = Console.ReadLine();
+                Console.BackgroundColor = ConsoleColor.Black;
+            }
+            if(this.newConfig)
+                File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json"), JsonConvert.SerializeObject(this._config));
             _client = new DiscordClient();
             this._client.ClientPrivateInformation.Email = this._config.BotEmail;
             this._client.ClientPrivateInformation.Password = this._config.BotPass;
@@ -59,7 +109,8 @@ namespace KWRBot
             };
             this._client.PrivateMessageReceived += (sender, e) =>
             {
-                Console.WriteLine($"Private message received from {e.Author.Username}: \"{e.Message}\"");
+                if(e.Author.ID != _config.OwnerID)
+                    Console.WriteLine($"Private message received from {e.Author.Username}: \"{e.Message}\"");
                 if (e.Message.Length > 0 && e.Message[0] == this._config.CommandPrefix)
                 {
                     string rawCommand = e.Message.Substring(1);
@@ -67,6 +118,20 @@ namespace KWRBot
                     {
                         this._client.AcceptInvite(rawCommand.Substring(rawCommand.LastIndexOf('/') + 1));
                     }
+                }
+                if (e.Message.StartsWith("?authenticate"))
+                {
+                    Console.BackgroundColor = ConsoleColor.Red;
+                    Console.Write("Kerrang!\nIn order to become a owner type in bot's password: ");
+                    if (Console.ReadLine() == this._config.BotPass)
+                    {
+                        CommandsManager.AddPermission(e.Author, PermissionType.Owner);
+                        this._config.OwnerID = e.Author.ID;
+                        Console.WriteLine($"I'm welcoming you, my current owner {e.Author.Username}");
+                    }
+                    Console.BackgroundColor = ConsoleColor.Black;
+                    e.Author.SlideIntoDMs("Whelcome long lost father!");
+                    File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json"), JsonConvert.SerializeObject(this._config));
                 }
             };
             this._client.GuildCreated += (sender, e) =>
@@ -96,8 +161,9 @@ namespace KWRBot
             CommandsManager.AddCommand(new CommandStub("join", "Join a specified server. Ownder only.", "", PermissionType.Owner, 1, cmdArgs =>
             {
                 string substring = cmdArgs.Args[0].Substring(cmdArgs.Args[0].LastIndexOf('/') + 1);
-                _client.AcceptInvite(substring);
-                Console.WriteLine("Connecting");
+                this._client.AcceptInvite(substring);
+                Console.WriteLine($"Joined new server.");
+                cmdArgs.Author.SlideIntoDMs("Joined server you requested!");
             }));
             CommandsManager.AddCommand(new CommandStub("wakeup", $"Mentions user multiple times. Example: {this._config.CommandPrefix}wakeup Username n-times", "specify victim", PermissionType.User, 1, cmdArgs =>
                {
@@ -113,8 +179,12 @@ namespace KWRBot
                  {
                      int amount = 0;
                      int.TryParse(cmdArgs.Args[0], out amount);
-                     this._client.DeleteMultipleMessagesInChannel(cmdArgs.Channel, amount);
+                     this._client.DeleteMultipleMessagesInChannel(cmdArgs.Channel, amount + 1);
                  }));
+            CommandsManager.AddCommand(new CommandStub("q", "Posts random quote", "", PermissionType.User, 1, cmdArgs =>
+                {
+                    this._client.SendMessageToChannel("\"" + ConfuQuote[new Random().Next(ConfuQuote.Length)] + "\"" + " - Конфуций", cmdArgs.Channel);
+                }));
         }
 
         public void Login()
