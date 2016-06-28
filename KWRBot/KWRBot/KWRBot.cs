@@ -47,6 +47,30 @@ namespace KWRBot
             "Не тот велик, кто никогда не падал, а тот велик – кто падал и вставал."
         };
 
+        private string[] Ball8 = new string[]
+        {
+            "Бесспорно",
+            "Предрешено",
+            "Никаких сомнений",
+            "Определённо да",
+            "Можешь быть уверен в этом",
+            "Мне кажется — «да»",
+            "Вероятнее всего",
+            "Хорошие перспективы",
+            "Знаки говорят — «да»",
+            "Да",
+            "Пока не ясно, попробуй снова",
+            "Спроси позже",
+            "Лучше не рассказывать",
+            "Сейчас нельзя предсказать",
+            "Сконцентрируйся и спроси опять",
+            "Даже не думай",
+            "Мой ответ — «нет»",
+            "По моим данным — «нет»",
+            "Перспективы не очень хорошие",
+            "Весьма сомнительно"
+        };
+
         public KWRBot()
         {
             Initialise();
@@ -66,14 +90,21 @@ namespace KWRBot
                 this._config = new Config();
                 this.newConfig = true;
             }
-            if (this._config.CommandPrefix.ToString().Length == 0)
-                this._config.CommandPrefix = '!';
-            if(this._config.BotEmail.Length == 0)
+            if (this._config.CommandPrefix.ToString() == string.Empty)
+            {
+                Console.WriteLine("Warning! No command prefix was found! Please, enter enter the prefix or it will be set to default (\"!\"");
+                Console.Write("Command prefix: ");
+                var prefix = Console.ReadLine();
+                this._config.CommandPrefix = (prefix.Length == 0) ? '!' : prefix.ToCharArray()[0];
+                this.newConfig = true;
+            }
+            if (this._config.BotEmail.Length == 0)
             {
                 Console.BackgroundColor = ConsoleColor.Red;
                 Console.Write("Error! No password were found!\nEnter bot's email: ");
                 this._config.BotEmail = Console.ReadLine();
                 Console.BackgroundColor = ConsoleColor.Black;
+                this.newConfig = true;
             }
             if (this._config.BotPass.Length == 0)
             {
@@ -81,8 +112,9 @@ namespace KWRBot
                 Console.Write("Error! No password were found!\nEnter bot's password: ");
                 this._config.BotPass = Console.ReadLine();
                 Console.BackgroundColor = ConsoleColor.Black;
+                this.newConfig = true;
             }
-            if(this.newConfig)
+            if (this.newConfig)
                 File.WriteAllText(Path.GetFullPath("settings.json"), JsonConvert.SerializeObject(this._config));
             _client = new DiscordClient();
             this._client.ClientPrivateInformation.Email = this._config.BotEmail;
@@ -96,20 +128,29 @@ namespace KWRBot
             {
                 Console.Title = $"KWRBot - Discord - logged in as {e.User.Username}";
                 Console.WriteLine($"Connected! Username: {e.User.Username}");
+
             };
             this._client.MessageReceived += (sender, e) =>
             {
-                if (e.Author.ID != _config.OwnerID && e.Author.Username != this._client.ClientPrivateInformation.Username)
+                if (e.Author.ID != this._config.OwnerID && e.Author.Username != this._client.ClientPrivateInformation.Username)
                 { Console.WriteLine($"Messag received from {e.Author.Username}: \"{e.MessageText}\""); }
                 if (e.Message.Content.Length > 0 && e.Message.Content[0] == this._config.CommandPrefix && e.Author.ID != this._config.BotID)
                 {
                     string rawCommand = e.Message.Content.Substring(1);
-                    CommandsManager.ExecuteOnMessageCommand(rawCommand, e.Channel, e.Author);
+                    try
+                    {
+                        CommandsManager.ExecuteOnMessageCommand(rawCommand, e.Channel, e.Author);
+                    }
+                    catch (UnauthorizedAccessException)
+                    {
+                        this._client.SendMessageToChannel("You don't have permission to execute this command. Contact administrator for additional information", e.Channel);
+                        Console.WriteLine($"{e.Author.Username} attempted to execute command with low access level");
+                    }
                 }
             };
             this._client.PrivateMessageReceived += (sender, e) =>
             {
-                if(e.Author.ID != _config.OwnerID)
+                if (e.Author.ID != this._config.OwnerID)
                     Console.WriteLine($"Private message received from {e.Author.Username}: \"{e.Message}\"");
                 if (e.Message.Length > 0 && e.Message[0] == this._config.CommandPrefix)
                 {
@@ -154,9 +195,9 @@ namespace KWRBot
                    string help = String.Format("inComplete set of commands:\n");
                    foreach (var command in CommandsManager.Commands)
                    {
-                       help += String.Format("{0,-15} {1,-100}\n", this._config.CommandPrefix + command.CommandName,"-" + command.Description);
+                       help += String.Format("{0,-15} {1,-100}\n", this._config.CommandPrefix + command.CommandName, "-" + command.Description + " Level: " + command.MinimumPermission);
                    }
-               this._client.SendMessageToChannel(help, cmdArgs.Channel);
+                   cmdArgs.Channel.SendMessage(help);
                }));
             CommandsManager.AddCommand(new CommandStub("join", "Join a specified server. Ownder only.", "", PermissionType.Owner, 1, cmdArgs =>
             {
@@ -165,25 +206,58 @@ namespace KWRBot
                 Console.WriteLine($"Joined new server.");
                 cmdArgs.Author.SlideIntoDMs("Joined server you requested!");
             }));
-            CommandsManager.AddCommand(new CommandStub("wakeup", $"Mentions user multiple times. Example: {this._config.CommandPrefix}wakeup Username n-times", "specify victim", PermissionType.User, 1, cmdArgs =>
+            CommandsManager.AddCommand(new CommandStub("wakeup", $"Mentions user multiple times. Example: {this._config.CommandPrefix}wakeup Username n-times", "specify victim", PermissionType.User, 2, cmdArgs =>
                {
                    string substring = cmdArgs.Args[0].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)[0];
-                   var victim = this._client.GetMemberFromChannel(cmdArgs.Channel, substring, false);
-                   var channel = cmdArgs.Channel;
-                   for (int i = 0; i < int.Parse(cmdArgs.Args[0].Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)[1]); i++)
+                   var victim = this._client.GetMemberFromChannel(cmdArgs.Channel, cmdArgs.Args[0], false);
+                   int times = 0;
+                   if (!int.TryParse(cmdArgs.Args[1], out times))
                    {
-                       this._client.SendMessageToChannel($"@{victim.Username} wake up!", cmdArgs.Channel);
+                       cmdArgs.Channel.SendMessage("Numbers, not random letters, dummy!");
+                   }
+                   for (int i = 0; i < times; i++)
+                   {
+                       cmdArgs.Channel.SendMessage($"@{victim.Username}, wake up!");
                    }
                }));
-            CommandsManager.AddCommand(new CommandStub("deletemsg", $"Delete last n messages. Example: {this._config.CommandPrefix}deletemsg n", "specify amount of messages", PermissionType.User, 1, cmdArgs =>
+            CommandsManager.AddCommand(new CommandStub("deletemsg", $"Delete last n messages. Example: {this._config.CommandPrefix}deletemsg n", "specify amount of messages", PermissionType.Mod, 1, cmdArgs =>
                  {
                      int amount = 0;
                      int.TryParse(cmdArgs.Args[0], out amount);
                      this._client.DeleteMultipleMessagesInChannel(cmdArgs.Channel, amount + 1);
                  }));
-            CommandsManager.AddCommand(new CommandStub("q", "Posts random quote", "", PermissionType.User, 1, cmdArgs =>
+            CommandsManager.AddCommand(new CommandStub("permission", "Grants user specified permission: Admin, Mod or User. Example: !permission user level", "", PermissionType.Owner, 2, cmdArgs =>
+            {
+                var member = this._client.GetMemberFromChannel(cmdArgs.Channel, cmdArgs.Args[0], false);
+                PermissionType type = PermissionType.User;
+                switch (cmdArgs.Args[1].ToLower())
                 {
-                    this._client.SendMessageToChannel("\"" + ConfuQuote[new Random().Next(ConfuQuote.Length)] + "\"" + " - Конфуций", cmdArgs.Channel);
+                    case "admin":
+                        type = PermissionType.Admin;
+                        break;
+                    case "mod":
+                        type = PermissionType.Mod;
+                        break;
+                    case "user":
+                        type = PermissionType.User;
+                        break;
+                    case "none":
+                        type = PermissionType.None;
+                        break;
+                    default:
+                        break;
+                }
+                cmdArgs.Channel.SendMessage($"User {member.Username} become {type.ToString()}");
+                Console.WriteLine($"New {type.ToString()} - {member.Username}({member.ID})");
+                CommandsManager.AddPermission(member, type);
+            }));
+            CommandsManager.AddCommand(new CommandStub("q", "Posts random quote", "", PermissionType.None, 1, cmdArgs =>
+                {
+                    cmdArgs.Channel.SendMessage("\"" + ConfuQuote[CommandsManager.rng.Next(0,ConfuQuote.Length)] + "\"" + " - Конфуций");
+                }));
+            CommandsManager.AddCommand(new CommandStub("ball", "If you seek for advice, just ask.", "", PermissionType.None, cmdArgs =>
+                {
+                    cmdArgs.Channel.SendMessage(Ball8[CommandsManager.rng.Next(0, Ball8.Length)]);
                 }));
         }
 
