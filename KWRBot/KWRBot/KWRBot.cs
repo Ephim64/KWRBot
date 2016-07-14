@@ -226,6 +226,16 @@ namespace KWRBot
                      int.TryParse(cmdArgs.Args[0], out amount);
                      this._client.DeleteMultipleMessagesInChannel(cmdArgs.Channel, amount + 1);
                  }));
+            CommandsManager.AddCommand(new CommandStub("ban", $"Bans user for specified amount of days. Example: {this._config.CommandPrefix}ban user days", "", PermissionType.Mod, 2, cmdArgs =>
+                 {
+                     int days=1;
+                     int.TryParse(cmdArgs.Args[1], out days);
+                     _client.BanMember(_client.GetMemberFromChannel(cmdArgs.Channel, cmdArgs.Args[0]));
+                 }));
+            CommandsManager.AddCommand(new CommandStub("kick", $"Kicks user. Example: {this._config.CommandPrefix}kick user", "", PermissionType.Mod, 1, cmdArgs =>
+             {
+                 this._client.KickMember(this._client.GetMemberFromChannel(cmdArgs.Channel, cmdArgs.Args[0]));
+             }));
             CommandsManager.AddCommand(new CommandStub("permission", "Grants user specified permission: Admin, Mod or User. Example: !permission user level", "", PermissionType.Owner, 2, cmdArgs =>
             {
                 var member = this._client.GetMemberFromChannel(cmdArgs.Channel, cmdArgs.Args[0], false);
