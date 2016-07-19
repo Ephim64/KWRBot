@@ -11,6 +11,7 @@
   2. Complete handlers for critical situations
   3. Youtube playback from link
   4. Soundcloud hashtag search and playback
+
 ##Current issues
   1.Stuck on moment when after connction DiscordVoiceClient get wrong initial data
   2.What follows from above, i cant got past Connection check and can't send sounds
