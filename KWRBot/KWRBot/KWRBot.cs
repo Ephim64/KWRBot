@@ -17,6 +17,7 @@ namespace KWRBot
         private CommandsManager CommandsManager;
         private Config _config;
         private DiscordClient _client;
+        private DiscordMember owner;
         private bool newConfig = false;
         private AudioPlayer ap;
         private string[] ConfuQuote = new string[]
@@ -121,6 +122,21 @@ namespace KWRBot
             this._client.ClientPrivateInformation.Email = this._config.BotEmail;
             this._client.ClientPrivateInformation.Password = this._config.BotPass;
             CommandsManager = new CommandsManager(this._client);
+            if(owner == null)
+            {
+                //var t = this._client.GetServerChannelIsIn().GetMemberByKey(this._config.OwnerID);
+                //owner = this._client.GetServersList().Find(x => x.GetMemberByKey(this._config.OwnerID) != null).GetMemberByKey(this._config.OwnerID);
+            }
+            if (File.Exists(Path.GetFullPath("permissions.json")))
+            {
+                var permissionDictionary = JsonConvert.DeserializeObject<Dictionary<string, PermissionType>>(File.ReadAllText("permissions.json"));
+                if(permissionDictionary == null)
+                {
+                    permissionDictionary = new Dictionary<string, PermissionType>();
+                    if (owner != null) permissionDictionary.Add(owner.ID, PermissionType.Owner);
+                }
+                this.CommandsManager.OverridePermissionsDictionary(permissionDictionary);
+            }
         }
 
         private void SetUpEvents()
@@ -129,11 +145,14 @@ namespace KWRBot
             {
                 Console.Title = $"KWRBot - Discord - logged in as {e.User.Username}";
                 Console.WriteLine($"Connected! Username: {e.User.Username}");
-
             };
             this._client.MessageReceived += (sender, e) =>
             {
-                if (e.Author.ID != this._config.OwnerID && e.Author.Username != this._client.ClientPrivateInformation.Username)
+                if (owner == null)
+                {
+                    owner = this._client.GetServerChannelIsIn(e.Channel).GetMemberByKey(this._config.OwnerID);
+                }
+                if (e.Author != owner && e.Author.Username != this._client.ClientPrivateInformation.Username)
                 { Console.WriteLine($"Messag received from {e.Author.Username}: \"{e.MessageText}\""); }
                 if (e.Message.Content.Length > 0 && e.Message.Content[0] == this._config.CommandPrefix && e.Author.ID != this._config.BotID)
                 {
@@ -161,7 +180,7 @@ namespace KWRBot
                         this._client.AcceptInvite(rawCommand.Substring(rawCommand.LastIndexOf('/') + 1));
                     }
                 }
-                if (e.Message.StartsWith("?authenticate"))
+                if (e.Message.StartsWith("?authenticate") && owner == null)
                 {
                     Console.BackgroundColor = ConsoleColor.Red;
                     Console.Write("Kerrang!\nIn order to become an owner type in bot's password: ");
@@ -169,10 +188,11 @@ namespace KWRBot
                     {
                         CommandsManager.AddPermission(e.Author, PermissionType.Owner);
                         this._config.OwnerID = e.Author.ID;
+                        owner = this._client.GetServersList().Find(x => x.GetMemberByKey(e.Author.ID) != null).GetMemberByKey(e.Author.ID);
                         Console.WriteLine($"I'm welcoming you, my current owner {e.Author.Username}");
                     }
                     Console.BackgroundColor = ConsoleColor.Black;
-                    e.Author.SlideIntoDMs("Whelcome long lost father!");
+                    owner.SlideIntoDMs("Welcome long lost father!");
                     File.WriteAllText(Path.GetFullPath("settings.json"), JsonConvert.SerializeObject(this._config));
                 }
             };
@@ -270,7 +290,7 @@ namespace KWRBot
                 {
                     cmdArgs.Channel.SendMessage(Ball8[CommandsManager.rng.Next(0, Ball8.Length)]);
                 }));
-            CommandsManager.AddCommand(new CommandStub("joinvoice", "Join voice channel", "", PermissionType.None, 1, cmdArgs =>
+            CommandsManager.AddCommand(new CommandStub("joinvoice", "Join voice channel", "", PermissionType.Owner, 1, cmdArgs =>
             {
                 DiscordChannel channelToJoin = cmdArgs.Channel.Parent.Channels.Find(x => x.Name.ToLower() == cmdArgs.Args[0].ToLower() && x.Type == ChannelType.Voice);
                 if (channelToJoin != null)
@@ -286,11 +306,11 @@ namespace KWRBot
                     this.ap = new AudioPlayer(this.CommandsManager.Client, config, channelToJoin);
                 }
             }));
-            CommandsManager.AddCommand(new CommandStub("disconnect", "Disconnects from voice channel.", "", PermissionType.None, 0, cmdArgs =>
+            CommandsManager.AddCommand(new CommandStub("disconnect", "Disconnects from voice channel.", "", PermissionType.Owner, 0, cmdArgs =>
                  {
                      this._client.DisconnectFromVoice();
                  }));
-            CommandsManager.AddCommand(new CommandStub("player", "Granting access to audio player. Currently avaliable commands: play", "", PermissionType.None, 1, cmdArgs =>
+            CommandsManager.AddCommand(new CommandStub("player", "Granting access to audio player. Currently avaliable commands: play", "", PermissionType.User, 1, cmdArgs =>
                  {
                      switch (cmdArgs.Args[0])
                      {
@@ -307,6 +327,19 @@ namespace KWRBot
                              break;
                      }
                  }));
+            CommandsManager.AddCommand(new CommandStub("roles", "Shows permission levels for users.", "", PermissionType.Owner, 0, cmdArgs =>
+                 {
+                     string msg = $"Roles for \"{cmdArgs.Channel.Parent.Name}\"\n";
+                     foreach (var role in cmdArgs.Channel.Parent.Roles)
+                     {
+                         msg += $"{role.Position} - {role.ID} - {role.Permissions.GetRawPermissions()}\n";
+                     }
+                     owner.SlideIntoDMs(msg);
+                 }));
+            CommandsManager.AddCommand(new CommandStub("shutdown", "Shutdown bot. Owner only.", "", PermissionType.Owner, 0, cmdArgs =>
+               {
+                   Exit();
+               }));
 
         }
 
@@ -318,6 +351,10 @@ namespace KWRBot
         public void Exit()
         {
             _client.Logout();
+            if(CommandsManager.UserRoles != null && CommandsManager.UserRoles.Count > 0)
+            {
+                File.WriteAllText("permissions.json", JsonConvert.SerializeObject(CommandsManager.UserRoles));
+            }
             _client.Dispose();
             Environment.Exit(0);
         }
