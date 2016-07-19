@@ -30,9 +30,6 @@ D:\GitRepo\KWRBot\KWRBot\obj\Debug\KWRBot.exe
 D:\GitRepo\KWRBot\KWRBot\obj\Debug\KWRBot.pdb
 D:\GitRepo\KWRBot\KWRBot\bin\Debug\KWRBot.exe
 D:\GitRepo\KWRBot\KWRBot\bin\Debug\KWRBot.pdb
-D:\GitRepo\KWRBot\KWRBot\bin\Debug\Discord.Net.Audio.dll
-D:\GitRepo\KWRBot\KWRBot\bin\Debug\Discord.Net.Commands.dll
-D:\GitRepo\KWRBot\KWRBot\bin\Debug\Discord.Net.dll
 D:\GitRepo\KWRBot\KWRBot\bin\Debug\DiscordSharp.dll
 D:\GitRepo\KWRBot\KWRBot\bin\Debug\NAudio.dll
 D:\GitRepo\KWRBot\KWRBot\bin\Debug\Newtonsoft.Json.dll

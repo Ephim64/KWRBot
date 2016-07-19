@@ -18,6 +18,7 @@ namespace KWRBot
         private Config _config;
         private DiscordClient _client;
         private bool newConfig = false;
+        private AudioPlayer ap;
         private string[] ConfuQuote = new string[]
         {
             "Три пути ведут к знанию: путь размышления — это путь самый благородный, путь подражания — это путь самый легкий и путь опыта — это путь самый горький.",
@@ -236,7 +237,7 @@ namespace KWRBot
              {
                  this._client.KickMember(this._client.GetMemberFromChannel(cmdArgs.Channel, cmdArgs.Args[0]));
              }));
-            CommandsManager.AddCommand(new CommandStub("permission", "Grants user specified permission: Admin, Mod or User. Example: !permission user level", "", PermissionType.Owner, 2, cmdArgs =>
+            CommandsManager.AddCommand(new CommandStub("permission", $"Grants user specified permission: Admin, Mod or User. Example: {this._config.CommandPrefix}permission user level", "", PermissionType.Owner, 2, cmdArgs =>
             {
                 var member = this._client.GetMemberFromChannel(cmdArgs.Channel, cmdArgs.Args[0], false);
                 PermissionType type = PermissionType.User;
@@ -261,14 +262,52 @@ namespace KWRBot
                 Console.WriteLine($"New {type.ToString()} - {member.Username}({member.ID})");
                 CommandsManager.AddPermission(member, type);
             }));
-            CommandsManager.AddCommand(new CommandStub("q", "Posts random quote", "", PermissionType.None, 1, cmdArgs =>
+            CommandsManager.AddCommand(new CommandStub("q", $"Posts random quote. Example: {this._config.CommandPrefix}q", "", PermissionType.None, 1, cmdArgs =>
                 {
                     cmdArgs.Channel.SendMessage("\"" + ConfuQuote[CommandsManager.rng.Next(0,ConfuQuote.Length)] + "\"" + " - Конфуций");
                 }));
-            CommandsManager.AddCommand(new CommandStub("ball", "If you seek for advice, just ask.", "", PermissionType.None, cmdArgs =>
+            CommandsManager.AddCommand(new CommandStub("ball", $"If you seek for advice, just ask. Example: {this._config.CommandPrefix}ball", "", PermissionType.None, cmdArgs =>
                 {
                     cmdArgs.Channel.SendMessage(Ball8[CommandsManager.rng.Next(0, Ball8.Length)]);
                 }));
+            CommandsManager.AddCommand(new CommandStub("joinvoice", "Join voice channel", "", PermissionType.None, 1, cmdArgs =>
+            {
+                DiscordChannel channelToJoin = cmdArgs.Channel.Parent.Channels.Find(x => x.Name.ToLower() == cmdArgs.Args[0].ToLower() && x.Type == ChannelType.Voice);
+                if (channelToJoin != null)
+                {
+                    DiscordVoiceConfig config = new DiscordVoiceConfig
+                    {
+                        FrameLengthMs = 60,
+                        Channels = 1,
+                        OpusMode = DiscordSharp.Voice.OpusApplication.MusicOrMixed,
+                        SendOnly = true
+                    };
+                    this.CommandsManager.Client.ConnectToVoiceChannel(channelToJoin, config);
+                    this.ap = new AudioPlayer(this.CommandsManager.Client, config, channelToJoin);
+                }
+            }));
+            CommandsManager.AddCommand(new CommandStub("disconnect", "Disconnects from voice channel.", "", PermissionType.None, 0, cmdArgs =>
+                 {
+                     this._client.DisconnectFromVoice();
+                 }));
+            CommandsManager.AddCommand(new CommandStub("player", "Granting access to audio player. Currently avaliable commands: play", "", PermissionType.None, 1, cmdArgs =>
+                 {
+                     switch (cmdArgs.Args[0])
+                     {
+                         case "play":
+                             this.ap.Play();
+                             break;
+                         case "stop":
+                             if(this._client.GetVoiceClient() != null)
+                             {
+                                 this._client.GetVoiceClient().ClearVoiceQueue();
+                             }
+                             break;
+                         default:
+                             break;
+                     }
+                 }));
+
         }
 
         public void Login()
