@@ -15,7 +15,8 @@
 ##Current issues
   1. Stuck on moment when after connction DiscordVoiceClient get wrong initial data.
   2. What follows from above, i cant got past Connection check and can't send sounds. 
- I think there is something with sockets that i missing and do not understand.
+
+I think there is something with sockets that i missing and do not understand.
 
 ## Courtesy 
   Many thanks to Luigifan for providing library.
