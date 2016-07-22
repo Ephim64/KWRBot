@@ -18,6 +18,12 @@ namespace KWRBot
 
         static void Main(string[] args)
         {
+            var websocketServet = new Fleck.WebSocketServer("ws://0.0.0.0");
+            websocketServet.Start(socket =>
+            {
+                socket.OnOpen = () => Console.WriteLine("WebSocket Open");
+                socket.OnClose = () => Console.WriteLine("WebSocket Closed");
+            });
             KWRBot bot = new KWRBot();
             bot.Login();
             Console.ReadKey();

@@ -49,3 +49,4 @@ D:\GitRepo\KWRBot\KWRBot\bin\Debug\Nito.AsyncEx.Enlightenment.xml
 D:\GitRepo\KWRBot\KWRBot\bin\Debug\RestSharp.xml
 D:\GitRepo\KWRBot\KWRBot\bin\Debug\websocket-sharp.xml
 D:\GitRepo\KWRBot\KWRBot\obj\Debug\KWRBot.csprojResolveAssemblyReference.cache
+D:\GitRepo\KWRBot\KWRBot\bin\Debug\Fleck.dll
